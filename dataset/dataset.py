@@ -9,8 +9,8 @@ from torch.utils.data import BatchSampler
 from torch.utils.data import Dataset, DataLoader
 import pickle
 
-from pretraining.dataset.utils import RandomHorizontalFlip as CustomRandomHorizontalFlip
-from pretraining.dataset.utils import CenterCrop as CustomCenterCrop
+from dataset.utils import RandomHorizontalFlip as CustomRandomHorizontalFlip
+from dataset.utils import CenterCrop as CustomCenterCrop
 
 # General
 BASE_DIR = ''

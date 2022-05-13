@@ -1,4 +1,7 @@
 import os
+import torch
+import torchvision.transforms.functional as F
+import numbers
 
 
 class IndexToString(object):
@@ -158,3 +161,119 @@ def conceptToBirstPart(index):
 	}
 
 	return [n - 1 for n in bird_parts[index + 1]]
+
+
+# https://pytorch.org/vision/main/_modules/torchvision/transforms/transforms.html#RandomHorizontalFlip
+# modified to return bool == True if image was flipped
+class RandomHorizontalFlip(torch.nn.Module):
+	"""Horizontally flip the given image randomly with a given probability.
+	If the image is torch Tensor, it is expected
+	to have [..., H, W] shape, where ... means an arbitrary number of leading
+	dimensions
+	Args:
+		p (float): probability of the image being flipped. Default value is 0.5
+	"""
+
+	def __init__(self, p=0.5):
+		super().__init__()
+		self.p = p
+
+	def forward(self, img):
+		"""
+		Args:
+			img (PIL Image or Tensor): Image to be flipped.
+		Returns:
+			PIL Image or Tensor: Randomly flipped image.
+			Bool: True if image flipped, else False
+		"""
+		if torch.rand(1) < self.p:
+			return F.hflip(img), True
+		return img, False
+
+	def __repr__(self):
+		return f"{self.__class__.__name__}(p={self.p})"
+
+
+# https://pytorch.org/vision/main/_modules/torchvision/transforms/transforms.html#CenterCrop
+# modified to return coordinates of cropped input
+class CenterCrop(torch.nn.Module):
+	"""Crops the given image at the center.
+	If the image is torch Tensor, it is expected
+	to have [..., H, W] shape, where ... means an arbitrary number of leading dimensions.
+	If image size is smaller than output size along any edge, image is padded with 0 and then center cropped.
+	Args:
+		size (sequence or int): Desired output size of the crop. If size is an
+			int instead of sequence like (h, w), a square crop (size, size) is
+			made. If provided a sequence of length 1, it will be interpreted as (size[0], size[0]).
+	"""
+
+	def __init__(self, size):
+		super().__init__()
+		self.size = _setup_size(size, error_msg="Please provide only two dimensions (h, w) for size.")
+
+	def forward(self, img):
+		"""
+		Args:
+			img (PIL Image or Tensor): Image to be cropped.
+		Returns:
+			PIL Image or Tensor: Cropped image.
+			List: [x1, y1, x2, y2] of cropped coordinates on input
+		"""
+		return center_crop(img, self.size)
+
+	def __repr__(self):
+		return f"{self.__class__.__name__}(size={self.size})"
+
+
+# https://pytorch.org/vision/stable/_modules/torchvision/transforms/functional.html#center_crop
+# modified to return coordinates of cropped input
+def center_crop(img, output_size):
+	"""Crops the given image at the center.
+	If the image is torch Tensor, it is expected
+	to have [..., H, W] shape, where ... means an arbitrary number of leading dimensions.
+	If image size is smaller than output size along any edge, image is padded with 0 and then center cropped.
+	Args:
+		img (PIL Image or Tensor): Image to be cropped.
+		output_size (sequence or int): (height, width) of the crop box. If int or sequence with single int,
+			it is used for both directions.
+	Returns:
+		PIL Image or Tensor: Cropped image.
+		List: [x1, y1, x2, y2] of cropped coordinates on input
+	"""
+	if isinstance(output_size, numbers.Number):
+		output_size = (int(output_size), int(output_size))
+	elif isinstance(output_size, (tuple, list)) and len(output_size) == 1:
+		output_size = (output_size[0], output_size[0])
+
+	image_width, image_height = F.get_image_size(img)
+	crop_height, crop_width = output_size
+
+	if crop_width > image_width or crop_height > image_height:
+		padding_ltrb = [
+			(crop_width - image_width) // 2 if crop_width > image_width else 0,
+			(crop_height - image_height) // 2 if crop_height > image_height else 0,
+			(crop_width - image_width + 1) // 2 if crop_width > image_width else 0,
+			(crop_height - image_height + 1) // 2 if crop_height > image_height else 0,
+		]
+		img = F.pad(img, padding_ltrb, fill=0)  # PIL uses fill value 0
+		image_width, image_height = F.get_image_size(img)
+		if crop_width == image_width and crop_height == image_height:
+			return img, [0, 0, image_width, image_height]
+
+	crop_top = int(round((image_height - crop_height) / 2.0))
+	crop_left = int(round((image_width - crop_width) / 2.0))
+	return F.crop(img, crop_top, crop_left, crop_height, crop_width), [crop_top, crop_left, crop_height, crop_width]
+
+
+# https://pytorch.org/vision/main/_modules/torchvision/transforms/transforms.html#CenterCrop
+def _setup_size(size, error_msg):
+	if isinstance(size, numbers.Number):
+		return int(size), int(size)
+
+	if isinstance(size, Sequence) and len(size) == 1:
+		return size[0], size[0]
+
+	if len(size) != 2:
+		raise ValueError(error_msg)
+
+	return size
