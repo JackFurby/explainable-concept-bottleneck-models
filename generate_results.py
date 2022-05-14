@@ -75,6 +75,22 @@ def model_class_pred(model, image, device):
 	return (prediction[0].max(1, keepdim=True)[1]).item()
 
 
+def register_hooks(layer, in_, grad_, name):
+	def get_in(self, l_in, l_out):
+		in_[name] = l_in[0]
+
+	def get_grad(self, grad_in, grad_out):
+		grad_[name] = grad_in[0]
+	fwd = layer.register_forward_hook(get_in)
+	bkd = layer.register_full_backward_hook(get_grad)
+	return fwd, bkd
+
+
+def remove_hooks(hooks):
+	for i in hooks:
+		i.remove()
+
+
 def enumerate_data(models, data_loader, output_path, class_index_to_string, concept_index_to_string, n_concepts=112, device="cpu", full_model=None, rules=None, mode="singlar", sample_counter=[]):
 	"""
 	enumerate entire dataset
@@ -129,6 +145,15 @@ def generate_concept_LRP_maps(models, rules, image, save_dir, n_concept=112, dev
 	"""
 	given a data sample, generate saliency maps with LRP for a given set of rule(s)
 	and model parts(s)
+
+	args:
+		models (list): List of pytorch models
+		rules (list): list of LRP rules (from TorchLRP). Number of rules must match number of models in list
+		image (tensor): pytorch tensor containing one image
+		save_dir (string): directory to save results to
+		n_concepts (int): Number of concepts in dataset
+		device (str): Device to generate results on (e.g. cpu or cuda:0)
+		concept_index_to_string (dict): dictionary to convert ints to strings (concepts to concept names)
 	"""
 	image = image.unsqueeze(0)
 	image.requires_grad_(True)
@@ -195,6 +220,14 @@ def generate_concept_LRP_maps(models, rules, image, save_dir, n_concept=112, dev
 def generate_concept_IG_maps(model, image_in, save_dir, n_concept=112, device="cpu", concept_index_to_string=None):
 	"""
 	given a data sample, generate saliency maps with IG
+
+	args:
+		models (list): List of pytorch models
+		image_in (tensor): pytorch tensor containing one image
+		save_dir (string): directory to save results to
+		n_concepts (int): Number of concepts in dataset
+		device (str): Device to generate results on (e.g. cpu or cuda:0)
+		concept_index_to_string (dict): dictionary to convert ints to strings (concepts to concept names)
 	"""
 	# get predicted concets and save to txt file
 	image = image_in.unsqueeze(0)
@@ -263,9 +296,28 @@ def generate_concept_IG_maps(model, image_in, save_dir, n_concept=112, device="c
 		print("3:", datetime.now() - startTime)
 
 # C to Y generation
+def generate_CtoY_LRP(model, data_loader, output_path, n_concept=112, class_index_to_string=None, concept_index_to_string=None, device="cpu", sample_counter=None):
+	"""
+	"""
+	sample_count = 0  # keep track of samples. Used to ensure we do not save two samples with the same name
+	for images, labels, concepts, orig_image in data_loader:
+		for idx, image in enumerate(images):
 
-# concept importance
+			# only generate explanation if number of samples for class is less than max to generate
+			if sample_counter[labels[idx].item()] < args.samples_per_class:
+				sample_counter[labels[idx].item()] += 1
 
+				current_output_path = f"{output_path}/{class_index_to_string(labels[idx].item())}/{str(sample_count)}-Pred-{class_index_to_string(model_class_pred(model, image.to(device), device))}"
+
+
+
+				# save input image
+				AX.clear()
+				AX.set_axis_off()
+				AX.imshow(orig_image[idx].squeeze().permute(1, 2, 0))
+				FIG.savefig(f'{current_output_path}/input.png', bbox_inches='tight', pad_inches = 0)
+
+				sample_count += 1
 
 if __name__ == "__main__":
 
@@ -289,12 +341,6 @@ if __name__ == "__main__":
 		'--use_relu',
 		action='store_true',
 		help='Whether to include relu activation before using attributes to predict Y. For end2end & bottleneck model'
-	)
-	parser.add_argument(
-		'--use_torchexplain',
-		action='store_true',
-		help='use the package and convert model to work with torchexplain',
-		default=True
 	)
 	parser.add_argument(
 		'--expand_dim',
@@ -338,6 +384,13 @@ if __name__ == "__main__":
 		help='Max number of samples to generate results for per class in the dataset',
 		default=10
 	)
+	parser.add_argument(
+		'--dataset_split',
+		type=str,
+		default="test",
+		choices=["test", "val", "train"],
+		help='The dataset split to enumerate'
+	)
 	args = parser.parse_args()
 
 	device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
@@ -347,12 +400,16 @@ if __name__ == "__main__":
 		print("Device:", device)
 
 	# load model and dataset
-	test_loader = load_data("./dataset/CUB/dataset_splits/CBM_dataset_split/test.pkl", 16, image_dir='dataset/CUB/data/images', return_orig=True)
+	test_loader = load_data(f"./dataset/CUB/dataset_splits/CBM_dataset_split/{args.dataset_split}.pkl", 16, image_dir='dataset/CUB/data/images', return_orig=True)
 
 	class_index_to_string = IndexToString("./dataset/CUB/data/classes.txt", classes=True)
 	concept_index_to_string = IndexToString("./dataset/CUB/dataset_splits/CBM_dataset_split/attributes.txt")
 
-	XtoCtoY_model = ModelXtoCtoY(n_class_attr=args.n_class_attr, num_classes=args.n_classes, n_attributes=args.n_concepts, expand_dim=args.expand_dim, use_relu=args.use_relu, use_sigmoid=args.use_sigmoid, train=args.use_torchexplain)
+	if args.mode == "CtoY":
+		train = False
+	else:
+		train = True
+	XtoCtoY_model = ModelXtoCtoY(n_class_attr=args.n_class_attr, num_classes=args.n_classes, n_attributes=args.n_concepts, expand_dim=args.expand_dim, use_relu=args.use_relu, use_sigmoid=args.use_sigmoid, train=train)
 	XtoCtoY_model.load_state_dict(torch.load(args.model))
 	XtoCtoY_model.to(device)
 	XtoCtoY_model.eval()
@@ -410,13 +467,7 @@ if __name__ == "__main__":
 
 		enumerate_data([XtoC_model], test_loader, output_path, class_index_to_string, concept_index_to_string, args.n_concepts, device, XtoCtoY_model, mode=args.mode, sample_counter=sample_counter)
 	elif args.mode == "CtoY":
-		pass
-	elif args.mode == "conceptImportance":
-		pass
+		CtoY_model = XtoCtoY_model.second_model
+		generate_CtoY_LRP(model, test_loader, output_path, args.n_concepts, class_index_to_string, concept_index_to_string, device, concept_index_to_string, sample_counter=sample_counter)
 	else:
 		print("mode not recognised")
-
-	#assert len(model_parts) == len(args.composite_rules), "Number of model parts must match the number of rules"
-
-	#enumerate_data(model_parts, args.composite_rules, test_loader, args.output, args.n_concepts, device)
-	#print("Done composite LRP rules")

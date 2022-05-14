@@ -22,11 +22,11 @@ torch.set_printoptions(sci_mode=False)
 
 
 # Joint Model
-def ModelXtoCtoY(n_class_attr, num_classes, n_attributes, expand_dim, use_relu, use_sigmoid, train=True, **kwargs):
-	vgg_model = vgg16_bn(pretrained=False, num_classes=num_classes, n_attributes=n_attributes, bottleneck=True, expand_dim=expand_dim, train=train, **kwargs)
+def ModelXtoCtoY(n_class_attr, num_classes, n_attributes, expand_dim, use_relu, use_sigmoid):
+	vgg_model = vgg16_bn(pretrained=False, num_classes=num_classes, n_attributes=n_attributes, bottleneck=True, expand_dim=expand_dim, train=True)
 	model1 = x_to_c_model(freeze=False, model=vgg_model)
 	if n_class_attr == 3:
-		model2 = MLP(input_dim=n_attributes * n_class_attr, num_classes=num_classes, expand_dim=expand_dim, train=train)
+		model2 = MLP(input_dim=n_attributes * n_class_attr, num_classes=num_classes, expand_dim=expand_dim, train=True)
 	else:
 		model2 = MLP(input_dim=n_attributes, num_classes=num_classes, expand_dim=expand_dim, train=train)
 	return End2EndModel(model1, model2, use_relu, use_sigmoid, n_class_attr)
@@ -280,12 +280,6 @@ if __name__ == "__main__":
 		help='Whether to include relu activation before using attributes to predict Y. For end2end & bottleneck model'
 	)
 	parser.add_argument(
-		'--use_torchexplain',
-		action='store_true',
-		help='use the package and convert model to work with torchexplain',
-		default=True
-	)
-	parser.add_argument(
 		'--expand_dim',
 		type=int,
 		help='Size of middle layer in CtoY model',
@@ -341,7 +335,7 @@ if __name__ == "__main__":
 	class_index_to_string = IndexToString("./dataset/CUB/data/classes.txt", classes=True)
 	concept_index_to_string = IndexToString("./dataset/CUB/dataset_splits/CBM_dataset_split/attributes.txt")
 
-	XtoCtoY_model = ModelXtoCtoY(n_class_attr=args.n_class_attr, num_classes=args.n_classes, n_attributes=args.n_concepts, expand_dim=args.expand_dim, use_relu=args.use_relu, use_sigmoid=args.use_sigmoid, train=args.use_torchexplain)
+	XtoCtoY_model = ModelXtoCtoY(n_class_attr=args.n_class_attr, num_classes=args.n_classes, n_attributes=args.n_concepts, expand_dim=args.expand_dim, use_relu=args.use_relu, use_sigmoid=args.use_sigmoid)
 	XtoCtoY_model.load_state_dict(torch.load(args.model))
 	XtoCtoY_model.to(device)
 	XtoCtoY_model.eval()

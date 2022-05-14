@@ -75,7 +75,6 @@ arguments
                         LRP rules defined in TorchLRP
   --use_sigmoid         Whether to include sigmoid activation before using attributes to predict Y. For end2end & bottleneck model
   --use_relu            Whether to include relu activation before using attributes to predict Y. For end2end & bottleneck model
-  --use_torchexplain    use the package and convert model to work with torchexplain
   --expand_dim EXPAND_DIM
                         Size of middle layer in CtoY model. Default: 0
   --n_class_attr N_CLASS_ATTR
@@ -85,10 +84,12 @@ arguments
   --n_classes N_CLASSES
                         number of concepts. Default: 200
   --output OUTPUT       output directory path
-  --mode {composite,singlar,IG,CtoY,conceptImportance}
+  --mode {composite,singlar,IG,CtoY}
                         mode to run script. Default: composite
   --samples_per_class SAMPLES_PER_CLASS
                         Max number of samples to generate results for per class in the dataset. Default: 10
+  --dataset_split {test,val,train}
+                        The dataset split to enumerate. Default test
 ```
 
 Generate composite LRP saliency maps for input to concept vector  
@@ -100,7 +101,7 @@ Generate singlar LRP saliency maps for input to concept vector
 Generate IG saliency maps for input to concept vector  
 `python generate_results.py --model ./models/state_dict/Joint0.01Model__Seed1.pth --output ./results/ --mode IG`
 
-Generate concept importance results  
+Generate CtoY results  
 `TO DO`
 
 
@@ -115,7 +116,6 @@ arguments
                         LRP rules defined in TorchLRP
   --use_sigmoid         Whether to include sigmoid activation before using attributes to predict Y. For end2end & bottleneck model
   --use_relu            Whether to include relu activation before using attributes to predict Y. For end2end & bottleneck model
-  --use_torchexplain    use the package and convert model to work with torchexplain
   --expand_dim EXPAND_DIM
                         Size of middle layer in CtoY model. Default: 0
   --n_class_attr N_CLASS_ATTR
