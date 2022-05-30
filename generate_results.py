@@ -299,23 +299,150 @@ def generate_concept_IG_maps(model, image_in, save_dir, n_concept=112, device="c
 def generate_CtoY_LRP(model, data_loader, output_path, n_concept=112, class_index_to_string=None, concept_index_to_string=None, device="cpu", sample_counter=None):
 	"""
 	"""
+	CtoY_model = model.sec_model
 	sample_count = 0  # keep track of samples. Used to ensure we do not save two samples with the same name
 	for images, labels, concepts, orig_image in data_loader:
+		images = images.to(device)
 		for idx, image in enumerate(images):
-
 			# only generate explanation if number of samples for class is less than max to generate
 			if sample_counter[labels[idx].item()] < args.samples_per_class:
 				sample_counter[labels[idx].item()] += 1
 
 				current_output_path = f"{output_path}/{class_index_to_string(labels[idx].item())}/{str(sample_count)}-Pred-{class_index_to_string(model_class_pred(model, image.to(device), device))}"
 
+				if not os.path.exists(current_output_path):
+					try:
+						os.makedirs(current_output_path)
+					except OSError:
+						print(f"Creation of the directory {current_output_path} failed")
+					else:
+						pass
+
+				# gert predicted concepts
+				image = image.unsqueeze(0)
+				pred_concepts = model.first_model(image)
+
+				pred_concepts_readable = torch.nn.Sigmoid()(pred_concepts)
+
+				pred_list = []
+				for idy, i in enumerate(pred_concepts_readable[0]):
+					pred_list.append((idy, i.item()))
+
+				pred_concepts_readable = sorted(pred_list, key=lambda x: -x[1])
+				print(pred_concepts_readable)
+
+				# Write concept predictions to file and save
+				with open(f'{current_output_path}/concept-pred.txt', mode='wt', encoding='utf-8') as f:
+					f.write("Predicted concepts (with Sigmoid)\n")
+					f.write("=================================\n")
+					for item in pred_concepts_readable:
+						f.write(f"{item[0]}: {concept_index_to_string(item[0])}, Sig value: {item[1]}\n")
+
+				# Write true concepts to file
+				with open(f'{current_output_path}/true-concepts.txt', mode='wt', encoding='utf-8') as f:
+					f.write("True concepts for sample\n")
+					f.write("========================\n")
+					for idz, concept_value in enumerate(concepts[idx]):
+						f.write(f"{idz}: {concept_index_to_string(idz)}, concept value: {concept_value.item()}\n")
 
 
-				# save input image
+				## generate the CtoY saliency map and concept contributions
+
+				# Register hooks
+				inputs, gradients = {}, {}
+				hooks = register_hooks(CtoY_model, inputs, gradients, 'grads')
+				CtoY_out = CtoY_model(pred_concepts)
+				_, pred = torch.max(CtoY_out, 1)
+
+				filter_out = torch.zeros_like(CtoY_out)
+				filter_out[:,pred.item()] += 1
+
+				# Get the gradient of each input
+				image_gradient = torch.autograd.grad(
+					CtoY_out,
+					pred_concepts,
+					grad_outputs=filter_out,
+					retain_graph=True)[0]
+
+				# generate saliency map
+				grad_plot = image_gradient
 				AX.clear()
 				AX.set_axis_off()
-				AX.imshow(orig_image[idx].squeeze().permute(1, 2, 0))
-				FIG.savefig(f'{current_output_path}/input.png', bbox_inches='tight', pad_inches = 0)
+				FIG.set_size_inches(112, 1)
+
+				sorted_prop, indexes = image_gradient[0].sort(descending=True)
+
+				# center 0 for min and max values on figure
+				if abs(sorted_prop[0].item()) > abs(sorted_prop[-1].item()):
+					vmin = 0 - abs(sorted_prop[0].item())
+					vmax = abs(sorted_prop[0].item())
+				else:
+					vmin = 0 - abs(sorted_prop[-1].item())
+					vmax = abs(sorted_prop[-1].item())
+
+				AX.imshow(image_gradient.cpu(), cmap='seismic', vmin=vmin, vmax=vmax)
+
+				AX.set_xticks([])
+				AX.set_yticks([])
+				AX.grid()
+				FIG.savefig(f'{current_output_path}/CtoY.png', bbox_inches='tight', pad_inches = 0)
+
+				ins = inputs['grads'][0]
+				grads = gradients['grads'][0]
+
+				# Calculate the proportions per input concept
+				ratios = []
+				for in_, grad_ in zip(ins, grads):
+					ratios.append(grad_ / in_)
+
+				balaced_ratios = []
+				for idx, i in enumerate(ratios):
+					balaced_ratios.append((idx, i / sum(ratios)))
+
+				balaced_ratios.sort(key=lambda x: x[1].item(), reverse=True)
+
+				# Write concept contributions to file
+				with open(f'{current_output_path}/concept-contributions.txt', mode='wt', encoding='utf-8') as f:
+					f.write("Concept contributions for sample (%)\n")
+					f.write("========================\n")
+					for ratio in balaced_ratios:
+						f.write(f"{ratio[0]+1}: {concept_index_to_string(ratio[0])}, contribution value: {float(ratio[1]*100)}\n")
+
+				# plot concept contributions to graph
+				percentages = [round(float(x[1]*100), 3) for x in balaced_ratios]
+				prop_labels = [concept_index_to_string(x[0]) for x in balaced_ratios]
+
+				keep_percentages = []
+				zero_keep = 2
+				for i in percentages:
+					if i > 0:
+						keep_percentages.append(i)
+					elif zero_keep > 1:
+						keep_percentages.append(i)
+						zero_keep -= 1
+
+				keep_labels = prop_labels[:len(keep_percentages)]
+
+
+
+				y_pos = np.arange(len(keep_labels))
+
+				FIG.set_size_inches(8, 24)
+
+				AX.clear()
+				AX.set_axis_off()
+
+				AX.barh(y_pos, keep_percentages)
+				AX.set_ylabel("Concepts")
+				AX.set_xlabel("Percentage (%)")
+				AX.set_title("Percentage of contribution to task classification")
+
+				AX.set_yticks(y_pos, keep_labels)
+
+				AX.invert_yaxis()
+				AX.margins(y=0)
+
+				FIG.savefig(f'{current_output_path}/concept-contribution-plot.png', bbox_inches='tight', pad_inches = 0)
 
 				sample_count += 1
 
@@ -467,7 +594,6 @@ if __name__ == "__main__":
 
 		enumerate_data([XtoC_model], test_loader, output_path, class_index_to_string, concept_index_to_string, args.n_concepts, device, XtoCtoY_model, mode=args.mode, sample_counter=sample_counter)
 	elif args.mode == "CtoY":
-		CtoY_model = XtoCtoY_model.second_model
-		generate_CtoY_LRP(model, test_loader, output_path, args.n_concepts, class_index_to_string, concept_index_to_string, device, concept_index_to_string, sample_counter=sample_counter)
+		generate_CtoY_LRP(XtoCtoY_model, test_loader, output_path, args.n_concepts, class_index_to_string, concept_index_to_string, device, sample_counter=sample_counter)
 	else:
 		print("mode not recognised")
