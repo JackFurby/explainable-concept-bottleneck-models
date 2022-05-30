@@ -102,7 +102,7 @@ Generate IG saliency maps for input to concept vector
 `python generate_results.py --model ./models/state_dict/Joint0.01Model__Seed1.pth --output ./results/ --mode IG`
 
 Generate CtoY results  
-`TO DO`
+`python generate_results.py --model ./models/state_dict/Joint0.01Model__Seed1.pth --output ./results --mode CtoY`
 
 
 ### pointing_game.py
