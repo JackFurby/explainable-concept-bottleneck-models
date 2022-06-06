@@ -52,7 +52,7 @@ Python version: `3.8.12`
 
 ### Models
 
-This repository does not train models. To reproduce the models from the paper please see [https://github.com/JackFurby/VGG-Concept-Bottleneck](https://github.com/JackFurby/VGG-Concept-Bottleneck). The models can also be downloaded from [here](). Models should be saved as a state_dict.
+This repository does not train models. To reproduce the models from the paper please see [https://github.com/JackFurby/VGG-Concept-Bottleneck](https://github.com/JackFurby/VGG-Concept-Bottleneck). The models can also be downloaded from [here](https://huggingface.co/Furby/VGG-Concept-Bottleneck). Models should be saved as a state_dict.
 
 1. Place the models in the directory `models/state_dict`
 
