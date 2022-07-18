@@ -329,7 +329,7 @@ def generate_CtoY_LRP(model, data_loader, output_path, n_concept=112, class_inde
 					pred_list.append((idy, i.item()))
 
 				pred_concepts_readable = sorted(pred_list, key=lambda x: -x[1])
-				print(pred_concepts_readable)
+				#print(pred_concepts_readable)
 
 				# Write concept predictions to file and save
 				with open(f'{current_output_path}/concept-pred.txt', mode='wt', encoding='utf-8') as f:
