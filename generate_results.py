@@ -296,7 +296,7 @@ def generate_concept_IG_maps(model, image_in, save_dir, n_concept=112, device="c
 		print("3:", datetime.now() - startTime)
 
 # C to Y generation
-def generate_CtoY_LRP(model, data_loader, output_path, n_concept=112, class_index_to_string=None, concept_index_to_string=None, device="cpu", sample_counter=None):
+def generate_CtoY_LRP(model, data_loader, output_path, n_concept=112, class_index_to_string=None, concept_index_to_string=None, device="cpu", sample_counter=None, use_sigmoid=False):
 	"""
 	"""
 	CtoY_model = model.sec_model
@@ -318,7 +318,7 @@ def generate_CtoY_LRP(model, data_loader, output_path, n_concept=112, class_inde
 					else:
 						pass
 
-				# gert predicted concepts
+				# get predicted concepts
 				image = image.unsqueeze(0)
 				pred_concepts = model.first_model(image)
 
@@ -348,7 +348,12 @@ def generate_CtoY_LRP(model, data_loader, output_path, n_concept=112, class_inde
 
 				## generate the CtoY saliency map and concept contributions
 
+				if use_sigmoid:
+					pred_concepts = [torch.nn.Sigmoid()(o) for o in pred_concepts]
+					pred_concepts = torch.stack(pred_concepts)
+
 				# Register hooks
+				pred_concepts.grad = None  # remove grad from x->c
 				inputs, gradients = {}, {}
 				hooks = register_hooks(CtoY_model, inputs, gradients, 'grads')
 				CtoY_out = CtoY_model(pred_concepts)
@@ -362,13 +367,13 @@ def generate_CtoY_LRP(model, data_loader, output_path, n_concept=112, class_inde
 					CtoY_out,
 					pred_concepts,
 					grad_outputs=filter_out,
-					retain_graph=True)[0]
+					retain_graph=False)[0]
 
 				# generate saliency map
 				grad_plot = image_gradient
 				AX.clear()
 				AX.set_axis_off()
-				FIG.set_size_inches(112, 1)
+				FIG.set_size_inches(n_concept, 1)
 
 				sorted_prop, indexes = image_gradient[0].sort(descending=True)
 
@@ -384,8 +389,9 @@ def generate_CtoY_LRP(model, data_loader, output_path, n_concept=112, class_inde
 
 				AX.set_xticks([])
 				AX.set_yticks([])
-				AX.grid()
-				FIG.savefig(f'{current_output_path}/CtoY.png', bbox_inches='tight', pad_inches = 0)
+				for concent_num in range(n_concept):
+					AX.axvline(x=concent_num-0.5, color='black')
+				FIG.savefig(f'{current_output_path}/CtoY.png', bbox_inches='tight', pad_inches=0)
 
 				ins = inputs['grads'][0]
 				grads = gradients['grads'][0]
@@ -594,6 +600,6 @@ if __name__ == "__main__":
 
 		enumerate_data([XtoC_model], test_loader, output_path, class_index_to_string, concept_index_to_string, args.n_concepts, device, XtoCtoY_model, mode=args.mode, sample_counter=sample_counter)
 	elif args.mode == "CtoY":
-		generate_CtoY_LRP(XtoCtoY_model, test_loader, output_path, args.n_concepts, class_index_to_string, concept_index_to_string, device, sample_counter=sample_counter)
+		generate_CtoY_LRP(XtoCtoY_model, test_loader, output_path, args.n_concepts, class_index_to_string, concept_index_to_string, device, sample_counter=sample_counter, use_sigmoid=args.use_sigmoid)
 	else:
 		print("mode not recognised")
