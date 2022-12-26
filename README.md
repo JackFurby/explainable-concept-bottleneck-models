@@ -90,6 +90,7 @@ arguments
                         Max number of samples to generate results for per class in the dataset. Default: 10
   --dataset_split {test,val,train}
                         The dataset split to enumerate. Default test
+  --use_cpu             Only use the system CPU, even if CUDA is available
 ```
 
 Generate composite LRP saliency maps for input to concept vector  

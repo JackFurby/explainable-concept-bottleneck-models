@@ -17,6 +17,7 @@ from captum.attr import NoiseTunnel
 from captum.attr import visualization as viz
 import math
 from tqdm import tqdm
+import pickle
 
 torch.set_printoptions(sci_mode=False)
 
@@ -28,7 +29,7 @@ def ModelXtoCtoY(n_class_attr, num_classes, n_attributes, expand_dim, use_relu, 
 	if n_class_attr == 3:
 		model2 = MLP(input_dim=n_attributes * n_class_attr, num_classes=num_classes, expand_dim=expand_dim, train=True)
 	else:
-		model2 = MLP(input_dim=n_attributes, num_classes=num_classes, expand_dim=expand_dim, train=train)
+		model2 = MLP(input_dim=n_attributes, num_classes=num_classes, expand_dim=expand_dim, train=True)
 	return End2EndModel(model1, model2, use_relu, use_sigmoid, n_class_attr)
 
 
@@ -138,8 +139,6 @@ def enumerate_data(models, data_loader, output_path, class_index_to_string, conc
 								else:
 									print("No mode selected")
 
-
-
 								if j in distances:
 									distances_new = distances[j]
 									distances_new.append(distance)
@@ -161,6 +160,9 @@ def enumerate_data(models, data_loader, output_path, class_index_to_string, conc
 			all_distances = all_distances + distances[key]
 			f.write(f'Part {key + 1} average distance: {sum(distances[key]) / len(distances[key])}\n')
 		f.write(f'All parts average distance: {sum(all_distances) / len(all_distances)}\n')
+
+	# save distances dict to pkl file
+	pickle.dump(distances, open(f"{output_path}/pointing_game_values.pkl", "wb"))
 
 
 def get_LRP_distance(models, rules, image, concept_no, true_loc):
@@ -321,10 +323,15 @@ if __name__ == "__main__":
 		help='Max number of samples to generate results for per classification. -1 to run all',
 		default=10
 	)
+	parser.add_argument(
+		'--use_cpu',
+		action='store_true',
+		help='Only use the system CPU, even if CUDA is available'
+	)
 	args = parser.parse_args()
 
-	device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
-	if torch.cuda.is_available():
+	device = torch.device("cuda:0" if (torch.cuda.is_available() and not args.use_cpu) else "cpu")
+	if torch.cuda.is_available() and not args.use_cpu:
 		print("Device:", device, torch.cuda.get_device_name(0))
 	else:
 		print("Device:", device)
