@@ -12,7 +12,7 @@ from models.vgg import *
 import lrp
 from models.converter import convert
 import argparse
-from captum.attr import IntegratedGradients
+from captum.attr import IntegratedGradients, Saliency
 from captum.attr import NoiseTunnel
 from captum.attr import visualization as viz
 import math
@@ -136,6 +136,8 @@ def enumerate_data(models, data_loader, output_path, class_index_to_string, conc
 									distance = get_LRP_distance(models, rules, images[idx].to(device), idy, locs[0][j])
 								elif mode == "IG":
 									distance = get_IG_distance(models[0], images[idx].to(device), idy, locs[0][j])
+								elif mode == "vanilla":
+									distance = get_saliency_distance(models[0], images[idx].to(device), idy, locs[0][j])
 								else:
 									print("No mode selected")
 
@@ -258,6 +260,30 @@ def get_IG_distance(nt, image, concept_no, true_loc):
 	return math.sqrt((a * a) + (b * b))  # return distance
 
 
+def get_saliency_distance(saliency, image, concept_no, true_loc):
+	"""
+	given a data sample, generate saliency maps with saliency (baseline)
+	"""
+
+	image = image.unsqueeze(0)
+	image.requires_grad_(True)
+	image.grad = None  # Reset gradient
+
+	attributions = saliency.attribute(
+		image,
+		target=concept_no
+	)
+
+	attr = heatmap(attributions, cmap_name='seismic')
+
+	top_point = np.unravel_index(attr.argmax(), attr.shape)
+
+	a = true_loc[0].item() - top_point[2]
+	b = true_loc[1].item() - top_point[1]
+
+	return math.sqrt((a * a) + (b * b))  # return distance
+
+
 if __name__ == "__main__":
 
 	parser = argparse.ArgumentParser(description='Train and test a Concept Bottleneck Model')
@@ -314,7 +340,7 @@ if __name__ == "__main__":
 		'--mode',
 		type=str,
 		default="LRP",
-		choices=["IG", "LRP"],
+		choices=["IG", "LRP", "vanilla"],
 		help='mode to run script'
 	)
 	parser.add_argument(
@@ -394,5 +420,13 @@ if __name__ == "__main__":
 		print("model loaded")
 
 		enumerate_data([nt], test_loader, output_path, class_index_to_string, concept_index_to_string, args.n_concepts, XtoCtoY_model, device, mode=args.mode, sample_counter=sample_counter)
+	elif args.mode == "vanilla":
+		XtoC_model = XtoCtoY_model.first_model
+		XtoC_model.to(device)
+		XtoC_model.eval()
+		saliency = Saliency(XtoC_model)
+		print("model loaded")
+
+		enumerate_data([saliency], test_loader, output_path, class_index_to_string, concept_index_to_string, args.n_concepts, XtoCtoY_model, device, mode=args.mode, sample_counter=sample_counter)
 	else:
 		print("mode not recognised")
