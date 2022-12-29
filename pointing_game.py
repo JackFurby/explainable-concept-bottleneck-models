@@ -211,12 +211,14 @@ def get_LRP_distance(models, rules, image, concept_no, true_loc):
 	a = true_loc[0].item() - top_point[2]
 	b = true_loc[1].item() - top_point[1]
 
-	#plt.imshow(attr_heat.squeeze(), cmap='seismic')
-	#plt.show()
-	#plt.imshow(attr_heat.squeeze(), cmap='seismic')
-	#plt.plot([true_loc[0].item()], [true_loc[1].item()], marker='o', markersize=3, color="green")
-	#plt.plot([top_point[2]], [top_point[1]], marker='o', markersize=3, color="purple")
-	#plt.show()
+	"""
+	plt.imshow(attr.squeeze(), cmap='seismic')
+	plt.show()
+	plt.imshow(attr.squeeze(), cmap='seismic')
+	plt.plot([true_loc[0].item()], [true_loc[1].item()], marker='o', markersize=3, color="green")
+	plt.plot([top_point[2]], [top_point[1]], marker='o', markersize=3, color="purple")
+	plt.show()
+	"""
 
 	return math.sqrt((a * a) + (b * b))  # return distance
 
@@ -241,7 +243,8 @@ def get_IG_distance(nt, image, concept_no, true_loc):
 		stdevs=0.2
 	)
 
-	attr = heatmap(attributions_ig, cmap_name='seismic')
+	#attr = heatmap(attributions_ig, cmap_name='seismic')
+	attr =  reduce_heatmap(attributions_ig, cmap_name='seismic')
 
 	top_point = np.unravel_index(attr.argmax(), attr.shape)
 
@@ -250,12 +253,14 @@ def get_IG_distance(nt, image, concept_no, true_loc):
 	a = true_loc[0].item() - top_point[2]
 	b = true_loc[1].item() - top_point[1]
 
-	#plt.imshow(attr_heat.squeeze(), cmap='seismic')
-	#plt.show()
-	#plt.imshow(attr_heat.squeeze(), cmap='seismic')
-	#plt.plot([true_loc[0].item()], [true_loc[1].item()], marker='o', markersize=3, color="green")
-	#plt.plot([top_point[2]], [top_point[1]], marker='o', markersize=3, color="purple")
-	#plt.show()
+	"""
+	plt.imshow(attr.squeeze(), cmap='seismic')
+	plt.show()
+	plt.imshow(attr.squeeze(), cmap='seismic')
+	plt.plot([true_loc[0].item()], [true_loc[1].item()], marker='o', markersize=3, color="green")
+	plt.plot([top_point[2]], [top_point[1]], marker='o', markersize=3, color="purple")
+	plt.show()
+	"""
 
 	return math.sqrt((a * a) + (b * b))  # return distance
 
@@ -274,12 +279,31 @@ def get_saliency_distance(saliency, image, concept_no, true_loc):
 		target=concept_no
 	)
 
-	attr = heatmap(attributions, cmap_name='seismic')
+	#attr = heatmap(attributions, cmap_name='seismic')
+	attr = reduce_heatmap(attributions, cmap_name='seismic')
 
 	top_point = np.unravel_index(attr.argmax(), attr.shape)
 
 	a = true_loc[0].item() - top_point[2]
 	b = true_loc[1].item() - top_point[1]
+
+	"""
+	# center 0 for min and max values on figure
+	if abs(np.amin(attr)) > abs(np.amax(attr)):
+		vmin = 0 - abs(np.amin(attr))
+		vmax = abs(np.amin(attr))
+	else:
+		vmin = 0 - abs(np.amax(attr))
+		vmax = abs(np.amax(attr))
+
+
+	plt.imshow(attr.squeeze(), cmap='seismic', vmin=vmin, vmax=vmax)
+	plt.show()
+	plt.imshow(attr.squeeze(), cmap='seismic', vmin=vmin, vmax=vmax)
+	plt.plot([true_loc[0].item()], [true_loc[1].item()], marker='o', markersize=3, color="green")
+	plt.plot([top_point[2]], [top_point[1]], marker='o', markersize=3, color="purple")
+	plt.show()
+	"""
 
 	return math.sqrt((a * a) + (b * b))  # return distance
 

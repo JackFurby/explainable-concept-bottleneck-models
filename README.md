@@ -137,3 +137,6 @@ LRP pointing game
 
 IG pointing game  
 ``python pointing_game.py --model ./saves/CBM_paper/state_dict/Joint0.01SigmoidModel__Seed1.pth --output ./results/ --mode IG --samples_per_class -1``
+
+Saliency (baseline) pointing game
+``python pointing_game.py --model ./saves/CBM_paper/state_dict/independant_seed1.pth --output ./results/ --mode vanilla --samples_per_class -1``
