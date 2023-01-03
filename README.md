@@ -140,3 +140,19 @@ IG pointing game
 
 Saliency (baseline) pointing game
 ``python pointing_game.py --model ./saves/CBM_paper/state_dict/independant_seed1.pth --output ./results/ --mode vanilla --samples_per_class -1``
+
+## Results
+
+### XtoC saliency maps
+
+![image info](./images/xtoc1.png)
+![image info](./images/xtoc2.png)
+![image info](./images/xtoc3.png)
+![image info](./images/xtoc4.png)
+
+### CtoY saliency maps
+
+![image info](./images/ctoy1.png)
+![image info](./images/ctoy2.png)
+![image info](./images/ctoy3.png)
+![image info](./images/ctoy4.png)
