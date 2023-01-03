@@ -253,14 +253,20 @@ def get_IG_distance(nt, image, concept_no, true_loc):
 	a = true_loc[0].item() - top_point[2]
 	b = true_loc[1].item() - top_point[1]
 
-	"""
-	plt.imshow(attr.squeeze(), cmap='seismic')
+	# center 0 for min and max values on figure
+	if abs(np.amin(attr)) > abs(np.amax(attr)):
+		vmin = 0 - abs(np.amin(attr))
+		vmax = abs(np.amin(attr))
+	else:
+		vmin = 0 - abs(np.amax(attr))
+		vmax = abs(np.amax(attr))
+
+	plt.imshow(attr.squeeze(), cmap='seismic', vmin=vmin, vmax=vmax)
 	plt.show()
-	plt.imshow(attr.squeeze(), cmap='seismic')
+	plt.imshow(attr.squeeze(), cmap='seismic', vmin=vmin, vmax=vmax)
 	plt.plot([true_loc[0].item()], [true_loc[1].item()], marker='o', markersize=3, color="green")
 	plt.plot([top_point[2]], [top_point[1]], marker='o', markersize=3, color="purple")
 	plt.show()
-	"""
 
 	return math.sqrt((a * a) + (b * b))  # return distance
 
