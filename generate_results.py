@@ -390,7 +390,7 @@ def generate_CtoY_LRP(model, data_loader, output_path, n_concept=112, class_inde
 				AX.set_xticks([])
 				AX.set_yticks([])
 				for concent_num in range(n_concept):
-					AX.axvline(x=concent_num-0.5, color='black')
+					AX.axvline(x=concent_num-0.5, color='black', linewidth=5)
 				FIG.savefig(f'{current_output_path}/CtoY.png', bbox_inches='tight', pad_inches=0)
 
 				ins = inputs['grads'][0]
@@ -524,10 +524,15 @@ if __name__ == "__main__":
 		choices=["test", "val", "train"],
 		help='The dataset split to enumerate'
 	)
+	parser.add_argument(
+		'--use_cpu',
+		action='store_true',
+		help='Only use the system CPU, even if CUDA is available'
+	)
 	args = parser.parse_args()
 
-	device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
-	if torch.cuda.is_available():
+	device = torch.device("cuda:0" if (torch.cuda.is_available() and not args.use_cpu) else "cpu")
+	if torch.cuda.is_available() and not args.use_cpu:
 		print("Device:", device, torch.cuda.get_device_name(0))
 	else:
 		print("Device:", device)
