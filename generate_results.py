@@ -390,7 +390,7 @@ def generate_CtoY_LRP(model, data_loader, output_path, n_concept=112, class_inde
 				AX.set_xticks([])
 				AX.set_yticks([])
 				for concent_num in range(n_concept):
-					AX.axvline(x=concent_num-0.5, color='black', linewidth=5)
+					AX.axvline(x=concent_num-0.5, color='black', linewidth=7)
 				FIG.savefig(f'{current_output_path}/CtoY.png', bbox_inches='tight', pad_inches=0)
 
 				ins = inputs['grads'][0]
