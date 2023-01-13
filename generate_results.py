@@ -12,7 +12,8 @@ from models.vgg import *
 import lrp
 from models.converter import convert
 import argparse
-from captum.attr import IntegratedGradients
+#from captum.attr import IntegratedGradients
+from captum.attr import IntegratedGradients, Saliency
 from captum.attr import NoiseTunnel
 from captum.attr import visualization as viz
 
@@ -111,6 +112,9 @@ def enumerate_data(models, data_loader, output_path, class_index_to_string, conc
 	sample_count = 0  # keep track of samples. Used to ensure we do not save two samples with the same name
 	for images, labels, concepts, orig_image in data_loader:
 		for idx, image in enumerate(images):
+
+			if labels[idx].item() != 15:
+				continue
 
 			# only generate explanation if number of samples for class is less than max to generate
 			if sample_counter[labels[idx].item()] < args.samples_per_class:
@@ -257,13 +261,14 @@ def generate_concept_IG_maps(model, image_in, save_dir, n_concept=112, device="c
 		for item in pred_concepts_readable:
 			f.write(f"{item[0]}: {concept_index_to_string(item[0])}, Sig value: {item[1]}\n")
 
-	ig = IntegratedGradients(model)
-	nt = NoiseTunnel(ig)
-
 	image = image_in.unsqueeze(0)
 	image.requires_grad_(True)
 	image.grad = None  # Reset gradient
 	baselines = image * 0
+
+	"""
+	ig = IntegratedGradients(model)
+	nt = NoiseTunnel(ig)
 
 
 	#model.zero_grad()
@@ -282,6 +287,17 @@ def generate_concept_IG_maps(model, image_in, save_dir, n_concept=112, device="c
 		)
 
 		attr = heatmap(attributions_ig, cmap_name='seismic')
+	"""
+
+	saliency = Saliency(model)
+
+	for i in range(n_concept):
+		attributions = saliency.attribute(
+			image,
+			target=i
+		)
+
+		attr = heatmap(attributions, cmap_name='seismic')
 
 		if concept_index_to_string != None:
 			concept_name = concept_index_to_string(i)
@@ -292,8 +308,6 @@ def generate_concept_IG_maps(model, image_in, save_dir, n_concept=112, device="c
 		AX.set_axis_off()
 		AX.imshow(attr.squeeze(), cmap='seismic')
 		FIG.savefig(f'{save_dir}/{i}-{concept_name}.png', bbox_inches='tight', pad_inches = 0)
-
-		print("3:", datetime.now() - startTime)
 
 # C to Y generation
 def generate_CtoY_LRP(model, data_loader, output_path, n_concept=112, class_index_to_string=None, concept_index_to_string=None, device="cpu", sample_counter=None, use_sigmoid=False):

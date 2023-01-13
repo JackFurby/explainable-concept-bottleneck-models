@@ -129,7 +129,7 @@ dmypy.json
 .pyre/
 
 # folders
-dataset/CUB
+dataset/CUB/data
 pretraining/dataset/CUB
 models/pretrained/
 models/state_dict/
