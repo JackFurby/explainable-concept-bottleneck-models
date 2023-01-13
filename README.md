@@ -5,6 +5,8 @@ This repository contains code and scripts for the paper: Towards a Deeper Unders
 
 ## Setup
 
+This repository has two Layer-Wise Relevance Propagation implementations included. These are [torchexplain](https://github.com/liamhiley/torchexplain) and [TorchLRP](https://github.com/fhvilshoj/TorchLRP).
+
 ### Dataset
 
 Experiments detailed in this reporitory use the dataset [Caltech-UCSD Birds-200-2011 (CUB)](http://www.vision.caltech.edu/datasets/cub_200_2011/).
