@@ -1,6 +1,6 @@
 # Explainable Concept Bottleneck Models
 
-This repository contains code and scripts for the paper: Explaining Concept Bottleneck Models with Layer-wise Relevance Propagation.
+This repository contains code and scripts for the paper: Towards a Deeper Understanding of Concept Bottleneck Models Through End-to-End Explanation.
 
 
 ## Setup
@@ -38,7 +38,6 @@ Experiments detailed in this reporitory use the dataset [Caltech-UCSD Birds-200-
   |-README
   |-train_test_split.txt
 ```
-4. Add `attributes.txt`, `test.pkl`, `train.pkl` and `val.pkl` to the directory `dataset/CUB/dataset_splits/CBM_dataset_split`. These files can be found [here]().
 
 
 ### Python and packages
@@ -52,7 +51,7 @@ Python version: `3.8.12`
 
 ### Models
 
-This repository does not train models. To reproduce the models from the paper please see [https://github.com/JackFurby/VGG-Concept-Bottleneck](https://github.com/JackFurby/VGG-Concept-Bottleneck). The models can also be downloaded from [here](https://huggingface.co/Furby/VGG-Concept-Bottleneck). Models should be saved as a state_dict.
+This repository does not train models. To reproduce the models from the paper please see [https://github.com/JackFurby/VGG-Concept-Bottleneck](https://github.com/JackFurby/VGG-Concept-Bottleneck). Models should be converted to a state_dict before using here.  The models can also be downloaded from [here](https://huggingface.co/Furby/VGG-Concept-Bottleneck).
 
 1. Place the models in the directory `models/state_dict`
 
@@ -61,7 +60,7 @@ This repository does not train models. To reproduce the models from the paper pl
 
 Each of the results have been added to individual Jupyter Lab files. Please refer to each file for a full breakdown of the function.
 
-The files `generate_results.py` and `pointing_game.py` will perform an operation on the entire dataset split given. `generate_results.py` repeat the same operations found in the Jupyter lab files and `pointing_game.py` runs a modification to the pointing game, caculating the average distance in pixels from the most salient point and the ground truth point from the dataset.
+The files `generate_results.py` and `pointing_game.py` will perform an operation on the entire dataset split given. `generate_results.py` repeat the same operations found in the Jupyter lab files and `pointing_game.py` runs a modification to the pointing game, calculating the average distance in pixels from the most salient point and the ground truth point from the dataset.
 
 
 ### generate_results.py
@@ -143,16 +142,33 @@ Saliency (baseline) pointing game
 
 ## Results
 
+Full breakdown of results can be found in the paper and [supplementary material]().
+
 ### XtoC saliency maps
 
 ![image info](./images/xtoc1.png)
+*Figure 1: All concepts were correctly predicted as present. The input class was Bewick wren.*  
+
 ![image info](./images/xtoc2.png)
+*Figure 2: Concepts are a mixture of present, not present, correctly predicted and not correctly predicted. The input class was Elegant tern.*  
+
 ![image info](./images/xtoc3.png)
+*Figure 3: Saliency maps for x → c models with the input of a Le Conte Sparrow image. Concepts shown are either incorrectly predicted as present or correctly predicted as present but not visible in the input image. The input class was Le Conte Sparrow.*  
+
 ![image info](./images/xtoc4.png)
+*Figure 4: Saliency maps for x → c models with the input of a Nelson Sharp tailed Sparrow image. Concepts shown are either correctly or incorrectly predicted as not present. The input class was Nelson Sharp tailed Sparrow.*
+
 
 ### CtoY saliency maps
 
 ![image info](./images/ctoy1.png)
+*Figure 5: Saliency maps for c → y for each training method where the final classification is correctly predicted as Baltimore Oriole.*  
+
 ![image info](./images/ctoy2.png)
+*Figure 6: Saliency maps for c → y for each training method where the final classification is correctly predicted as Rhinoceros Auklet.*  
+
 ![image info](./images/ctoy3.png)
+*Figure 7: Saliency maps for c → y for each training method where the final classification is incorrect. The correct class is Herring gull and the predicted class was California gull for the independent model, Western gull for joint-without-sigmoid model, Nashville warbler for the joint-with-sigmoid model and Red legged kittiwake for the sequential mode*  
+
 ![image info](./images/ctoy4.png)
+*Figure 8: Saliency maps for c → y for each training method where the final classification is incorrect. The correct classification is Hooded Merganser. The predicted classifications were Red breasted Merganser for the independent model, joint-without-sigmoid model and sequential model, and Godwall for the joint-without-sigmoid model.*
