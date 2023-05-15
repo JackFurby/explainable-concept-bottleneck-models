@@ -1,6 +1,6 @@
 # Explainable Concept Bottleneck Models
 
-This repository contains code and scripts for the paper: Towards a Deeper Understanding of Concept Bottleneck Models Through End-to-End Explanation.
+This repository contains code and scripts for the paper: [Towards a Deeper Understanding of Concept Bottleneck Models Through End-to-End Explanation](https://arxiv.org/abs/2302.03578).
 
 
 ## Setup
@@ -144,7 +144,7 @@ Saliency (baseline) pointing game
 
 ## Results
 
-Full breakdown of results can be found in the paper and [supplementary material]().
+Full breakdown of results can be found in the [paper and supplementary material](https://arxiv.org/abs/2302.03578).
 
 ### XtoC saliency maps
 
